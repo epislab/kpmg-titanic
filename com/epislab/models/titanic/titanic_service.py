@@ -30,6 +30,36 @@ class TitanicService:
         this.context = 'C:\\Users\\pakjk\\Documents\\titanic250207\\com\\epislab\\datas\\titanic\\'
         this.fname = fname
         return pd.read_csv(this.context + this.fname)
+    
+    def preprocess(self, train_fname, test_fname) -> object:
+        print("-------- 모델 전처리 시작 --------")
+        feature = ['PassengerId', 'Survived', 'Pclass', 'Name', 'Sex', 
+                   'Age', 'SibSp', 'Parch', 'Ticket', 'Fare', 'Cabin', 'Embarked']
+        this = self.dataset
+        this.train = self.new_model(train_fname)
+        this.test = self.new_model(test_fname)
+        this.id = this.test['PassengerId']
+        # 'SibSp', 'Parch', 'Cabin', 'Ticket' 가 지워야 할 feature 이다.
+        drop_features = ['SibSp', 'Parch', 'Cabin', 'Ticket']
+        this = self.drop_feature(this, *drop_features)
+        this = self.embarked_nominal(this)
+       
+        return this
+    
+    @staticmethod
+    def create_labels(this) -> object:
+        return this.train['Survived']
+    
+    @staticmethod
+    def create_train(this) -> object:
+        return this.train.drop('Survived', axis=1)
+    
+    @staticmethod
+    def drop_feature(this, *drop_features) -> object:
+        for i in drop_features:
+            this.train.drop([i], axis=1)
+            this.test.drop([i], axis=1)
+        return this
 
 
     @staticmethod
@@ -51,6 +81,12 @@ class TitanicService:
 
 
     @staticmethod
-    def fare_nominal():
-        pass
+    def embarked_nominal(this):
+        this.train = this.train.fillna({'Embarked':'S'}) # 사우스햄튼이 가장 많으니까
+        this.test = this.test.fillna({'Embarked':'S'})
+        this.train['Embarked'] = this.train['Embarked'].map({'S':1, 'C':2, 'Q':3})
+        this.test['Embarked'] = this.test['Embarked'].map({'S':1, 'C':2, 'Q':3})
+
+        return this
+
 

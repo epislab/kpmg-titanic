@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
-from com.epislab.models.titanic.titanic_controller import Controller
+from com.epislab.models.titanic.titanic_controller import TitanicController
 
 app = Flask(__name__)
 @app.route('/')
 def intro():
-    controller = Controller()
+    controller = TitanicController()
     controller.modeling('train.csv', 'test.csv')
     return render_template("/index.html")
 
