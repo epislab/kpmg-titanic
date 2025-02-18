@@ -39,12 +39,32 @@ class TitanicService:
         this.train = self.new_model(train_fname)
         this.test = self.new_model(test_fname)
         this.id = this.test['PassengerId']
+        this.label = this.train['Survived']
+        this.train = this.train.drop('Survived', axis=1)
         # 'SibSp', 'Parch', 'Cabin', 'Ticket' 가 지워야 할 feature 이다.
         drop_features = ['SibSp', 'Parch', 'Cabin', 'Ticket']
-        this = self.drop_feature(this, *drop_features)
-        this = self.embarked_nominal(this)
+        this = self.drop_feature(this,*drop_features)
+        this = self.extract_title_from_name(this)
+        title_mapping = self.remove_duplicate_title(this)
+        this = self.title_nominal(this, title_mapping)
+        this = self.drop_feature(this, 'Name')
+        this = self.gender_nominal(this)
+        this = self.drop_feature(this, 'Sex')
+        this = self.embarked_nominal(this)  
+        # self.df_info(this)
+        this = self.age_ratio(this)
+        this = self.drop_feature(this, 'Age')
+        this = self.pclass_ordinal(this)
+        this = self.fare_ratio(this)
+        this = self.drop_feature(this, "Fare")
        
         return this
+    
+    '''
+    Categorical vs. Quantitative
+    Cate -> nominal (이름) vs. ordinal (순서)
+    Quan -> interval (상대) vs. ratio (절대)
+    '''
     
     @staticmethod
     def create_labels(this) -> object:
@@ -55,29 +75,91 @@ class TitanicService:
         return this.train.drop('Survived', axis=1)
     
     @staticmethod
-    def drop_feature(this, *drop_features) -> object:
-        for i in drop_features:
-            this.train.drop([i], axis=1)
-            this.test.drop([i], axis=1)
+    def drop_feature(this, *feature) -> object:
+        [i.drop(j, axis=1, inplace=True) for j in feature for i in [this.train,this.test ] ]
+
+        # for i in [this.train, this.test]:
+        #     for j in feature:
+        #         i.drop(j, axis=1, inplace=True)
+ 
+        return this
+    
+    @staticmethod
+    def null_check(this):
+        [print(i.isnull().sum()) for i in [this.train, this.test]]
+        for i in [this.train, this.test]:
+            print(i.isnull().sum())
+
+    @staticmethod
+    def extract_title_from_name(this):
+        # for i in [this.train, this.test]:
+        #     i['Title'] = i['Name'].str.extract('([A-Za-z]+)\.', expand=False) 
+
+        [i.__setitem__('Title', i['Name'].str.extract('([A-Za-z]+)\.', expand=False)) 
+         for i in [this.train, this.test]]
+            # expand=False 는 시리즈 로 추출
+        return this
+    
+
+    @staticmethod
+    def remove_duplicate_title(this):
+        a = []
+        for i in [this.train, this.test]:
+            # a.append(i['Title'].unique())
+            a += list(set(i['Title'])) # train, test 두번을 누적해야 해서서
+        a = list(set(a)) # train, test 각각은 중복이 아니지만, 합치면서 중복발생
+        print("🐞🐞🐞")
+        print(a)
+        # ['Mr', 'Miss', 'Dr', 'Major', 'Sir', 'Ms', 'Master', 'Capt', 'Mme', 'Mrs', 
+        #  'Lady', 'Col', 'Rev', 'Countess', 'Don', 'Mlle', 'Dona', 'Jonkheer']
+        '''
+        ['Mr', 'Sir', 'Major', 'Don', 'Rev', 'Countess', 'Lady', 'Jonkheer', 'Dr',
+        'Miss', 'Col', 'Ms', 'Dona', 'Mlle', 'Mme', 'Mrs', 'Master', 'Capt']
+        Royal : ['Countess', 'Lady', 'Sir']
+        Rare : ['Capt','Col','Don','Dr','Major','Rev','Jonkheer','Dona','Mme' ]
+        Mr : ['Mlle']
+        Ms : ['Miss']
+        Master
+        Mrs
+        '''
+        title_mapping = {'Mr': 1, 'Ms': 2, 'Mrs': 3, 'Master': 4, 'Royal': 5, 'Rare': 6}
+        
+        return title_mapping
+    
+
+    @staticmethod
+    def title_nominal(this, title_mapping):
+        for i in [this.train, this.test]:
+            i['Title'] = i['Title'].replace(['Countess', 'Lady', 'Sir'], 'Royal')
+            i['Title'] = i['Title'].replace(['Capt','Col','Don','Dr','Major','Rev','Jonkheer','Dona','Mme'], 'Rare')
+            i['Title'] = i['Title'].replace(['Mlle'], 'Mr')
+            i['Title'] = i['Title'].replace(['Miss'], 'Ms')
+            # Master 는 변화없음
+            # Mrs 는 변화없음
+            i['Title'] = i['Title'].fillna(0)
+            i['Title'] = i['Title'].map(title_mapping)
+            
+        return this
+        
+
+
+    @staticmethod
+    def pclass_ordinal(this):
+        return this
+
+    @staticmethod
+    def gender_nominal(this):
+            
+        return this
+
+    @staticmethod
+    def age_ratio(this):
         return this
 
 
     @staticmethod
-    def pclass_ordinal():
-        pass
-
-    @staticmethod
-    def gender_nominal():
-        pass
-
-    @staticmethod
-    def age_ordinal():
-        pass
-
-
-    @staticmethod
-    def fare_ordinal():
-        pass
+    def fare_ratio(this):
+        return this
 
 
     @staticmethod
@@ -88,5 +170,12 @@ class TitanicService:
         this.test['Embarked'] = this.test['Embarked'].map({'S':1, 'C':2, 'Q':3})
 
         return this
+    
+
+    @staticmethod
+    def kwargs_sample(**kwargs) -> None:
+        # for key, value in kwargs.items():
+        #     print(f'키워드: {key} 값: {value}')
+        {print(''.join(f'키워드: {key} 값: {value}')) for key, value in kwargs.items()}
 
 
