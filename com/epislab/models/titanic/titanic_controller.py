@@ -9,7 +9,8 @@ class TitanicController:
     service = TitanicService()
 
     def modeling(self, train, test):
-        this = self.service.preprocess(train, test)
+        
+        this = TitanicService().preprocess(train, test)
         self.print_this(this)
         # this.train = self.service.create_train(this)
         # print("😎😎 트레인: 머신에게 내는 문제 ")
@@ -17,6 +18,8 @@ class TitanicController:
         # this.label = self.service.create_labels(this)
         # print("😎😎 라벨스: 머신이 맞춰야 하는 답 ")
         # ic(labels)
+        TitanicService.get_count_of_null(this,'Age')
+        
         return this
     
     def learning(self):

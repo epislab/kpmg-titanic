@@ -1,5 +1,6 @@
 from com.epislab.models.titanic.dataset import Dataset
 import pandas as pd
+import numpy as np
 
 """
 PassengerId  고객ID,
@@ -40,7 +41,7 @@ class TitanicService:
         this.test = self.new_model(test_fname)
         this.id = this.test['PassengerId']
         this.label = this.train['Survived']
-        this.train = this.train.drop('Survived', axis=1)
+        this.train = self.create_train(this)
         # 'SibSp', 'Parch', 'Cabin', 'Ticket' 가 지워야 할 feature 이다.
         drop_features = ['SibSp', 'Parch', 'Cabin', 'Ticket']
         this = self.drop_feature(this,*drop_features)
@@ -149,13 +150,40 @@ class TitanicService:
 
     @staticmethod
     def gender_nominal(this):
-            
+
+        gender_mapping = {'male': 0, 'female': 1}
+        # for i in [this.train, this.test]:
+        #     i["Gender"] = i["Sex"].map(gender_mapping)
+        [i.__setitem__('Gender',i['Sex'].map(gender_mapping)) 
+         for i in [this.train, this.test]]
         return this
 
     @staticmethod
     def age_ratio(this):
+        
+        TitanicService.get_count_of_null(this,"Age")
+        for i in [this.train, this.test]:
+            i['Age'] = i['Age'].fillna(-0.5)
+        TitanicService.get_count_of_null(this,"Age")
+        train_max_age = max(this.train['Age'])
+        test_max_age = max(this.test['Age'])
+        max_age = max(train_max_age, test_max_age)
+        print("🌳👀🦙⭕🛹최고령자", max_age)
+        bins = [-1, 0, 5, 12, 18, 24, 35, 60, np.inf]
+        labels = ['Unknown','Baby','Child','Teenager','Student','Young Adult','Adult', 'Senior']
+        age_mapping = {'Unknown':0 , 'Baby': 1, 'Child': 2, 'Teenager' : 3, 'Student': 4,
+                       'Young Adult': 5, 'Adult':6,  'Senior': 7}
+        for i in [this.train, this.test]:
+            i['AgeGroup'] = pd.cut(i['Age'], bins, labels=labels).map(age_mapping)
+        
         return this
-
+    
+    @staticmethod
+    def get_count_of_null( this, feature):
+        for i in [this.train, this.test]:
+            null_count = i[feature].isnull().sum()
+            print("🌳👀🦙⭕🛹빈값의 갯수", null_count)
+    
 
     @staticmethod
     def fare_ratio(this):
@@ -164,13 +192,12 @@ class TitanicService:
 
     @staticmethod
     def embarked_nominal(this):
-        this.train = this.train.fillna({'Embarked':'S'}) # 사우스햄튼이 가장 많으니까
-        this.test = this.test.fillna({'Embarked':'S'})
-        this.train['Embarked'] = this.train['Embarked'].map({'S':1, 'C':2, 'Q':3})
-        this.test['Embarked'] = this.test['Embarked'].map({'S':1, 'C':2, 'Q':3})
-
+        for i in [this.train, this.test]:
+            i['Embarked'] = i['Embarked'].fillna('S')# 사우스햄튼이 가장 많으니까
+        embarked_mapping = {'S':1, 'C':2, 'Q':3}
+        this.train['Embarked'] = this.train['Embarked'].map(embarked_mapping)
+        this.test['Embarked'] = this.test['Embarked'].map(embarked_mapping)
         return this
-    
 
     @staticmethod
     def kwargs_sample(**kwargs) -> None:
